@@ -4,6 +4,33 @@
   
     
     <entry>
+      <title>GameFramework解析：全局配置(Config)</title>
+      <link href="/2024/11/06/gf_config/"/>
+      <url>/2024/11/06/gf_config/</url>
+      
+        <content type="html"><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>首先要明白的一点是GF里面的全局配置并不是指的一般意义上的数据表，全局配置表的格式不能随便自定义，它的格式必须与当前的ConfigHelper里面写定的解析格式保持一致，否则无法解析。而它是用来存储一些全局性质的只读配置，如玩家初始速度、游戏初始音量等。</p><h2 id="全局配置模块结构图"><a href="#全局配置模块结构图" class="headerlink" title="全局配置模块结构图"></a>全局配置模块结构图</h2><img src="/img/gf_config.png" class="post-image" />从结构上就可以看出几个点：<ul><li>ConfigManager和DataProvider存在许多个相同的接口，是因为ConfigManager主要是对DataProvider里面的方法进行封装，模块的核心逻辑位于DataProvider。</li><li>DataProvider和DefaultConfigHelper的核心功能方法名称相同，是因为真正的对配置文件的读取，解析功能位于DefaultConfigHelper。</li></ul><p>这样做的好处是不仅实现了解耦，而且方便功能的修改和拓展，ConfigManager存储解析好的配置数据，并提供给外界功能接口；模块核心逻辑位于DataProvider；读取和解析的逻辑位于ConfigHelper。使用者可以使用默认的DefaultConfigHelper来加载对应格式的配置文件，也可以根据自己项目的需求，去书写自己的ConfigHelper来实现自定义的配置格式和对应的解析逻辑。</p><h2 id="读取解析存储全局配置流程"><a href="#读取解析存储全局配置流程" class="headerlink" title="读取解析存储全局配置流程"></a>读取解析存储全局配置流程</h2><h2 id="ConfigManager"><a href="#ConfigManager" class="headerlink" title="ConfigManager"></a>ConfigManager</h2><h2 id="DataProvider"><a href="#DataProvider" class="headerlink" title="DataProvider"></a>DataProvider</h2><h3 id="类内信息"><a href="#类内信息" class="headerlink" title="类内信息"></a>类内信息</h3><h3 id="二进制流的缓存与释放"><a href="#二进制流的缓存与释放" class="headerlink" title="二进制流的缓存与释放"></a>二进制流的缓存与释放</h3><h2 id="DefaultConfigHelper"><a href="#DefaultConfigHelper" class="headerlink" title="DefaultConfigHelper"></a>DefaultConfigHelper</h2>]]></content>
+      
+      
+      <categories>
+          
+          <category> GameFramework </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 配置 </tag>
+            
+            <tag> GameFramework </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>GameFramework解析：实体(Entity)</title>
       <link href="/2024/10/31/gf_entity/"/>
       <url>/2024/10/31/gf_entity/</url>
@@ -20,9 +47,9 @@
       
         <tags>
             
-            <tag> 实体 </tag>
-            
             <tag> GameFramework </tag>
+            
+            <tag> 实体 </tag>
             
         </tags>
       
@@ -47,11 +74,11 @@
       
         <tags>
             
+            <tag> GameFramework </tag>
+            
             <tag> 事件系统 </tag>
             
             <tag> 观察者模式 </tag>
-            
-            <tag> GameFramework </tag>
             
         </tags>
       
