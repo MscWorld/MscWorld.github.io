@@ -1,0 +1,332 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="dark"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>如何设计一个较通用的UI框架 | 世界观</title><meta name="author" content="世界"><meta name="copyright" content="世界"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#0d0d0d"><meta name="description" content="前言本文会浅谈UI框架的设计和关注要点，如果对UGUI基础理论和性能优化感兴趣，可以参考之前的文章，如果想要了解更多可以查看本文下面的推荐文章。 为什么需要UI框架，其设计思想是什么试想一下如果没有一个统一的UI框架，所有的业务程序员会如何进行UI的开发——一个人一个策略，组件各种方式搜集，写法千差万别，轮子任意造，维护成本巨大，整体可读性极差，也就是所谓的“混乱”。 我曾经问过大佬们为什么需要设">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何设计一个较通用的UI框架">
+<meta property="og:url" content="http://mscworld.top/2025/04/06/uiframework/index.html">
+<meta property="og:site_name" content="世界观">
+<meta property="og:description" content="前言本文会浅谈UI框架的设计和关注要点，如果对UGUI基础理论和性能优化感兴趣，可以参考之前的文章，如果想要了解更多可以查看本文下面的推荐文章。 为什么需要UI框架，其设计思想是什么试想一下如果没有一个统一的UI框架，所有的业务程序员会如何进行UI的开发——一个人一个策略，组件各种方式搜集，写法千差万别，轮子任意造，维护成本巨大，整体可读性极差，也就是所谓的“混乱”。 我曾经问过大佬们为什么需要设">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://mscworld.top/img/miki3.png">
+<meta property="article:published_time" content="2025-04-06T03:53:06.770Z">
+<meta property="article:modified_time" content="2025-04-06T14:10:44.953Z">
+<meta property="article:author" content="世界">
+<meta property="article:tag" content="UGUI">
+<meta property="article:tag" content="UI">
+<meta property="article:tag" content="优化">
+<meta property="article:tag" content="UI框架">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://mscworld.top/img/miki3.png"><link rel="shortcut icon" href="/img/roxy4.png"><link rel="canonical" href="http://mscworld.top/2025/04/06/uiframework/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        if (name && globalFn[key][name]) return
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: {"defaultEncoding":2,"translateDelay":0,"msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"簡"},
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":300,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '如何设计一个较通用的UI框架',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2025-04-06 22:10:44'
+}</script><link rel="stylesheet" href="/css/custom.css" media="defer" onload="this.media='all'"><script src="/live2d-widget/autoload.js"></script><!-- hexo injector head_end start --><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-footer-beautify@1.0.0/lib/runtime.css" media="print" onload="this.media='all'"><!-- hexo injector head_end end --><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(/img/bggbc.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/roxy4.png" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">12</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">17</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fas fa-light fa-envelope"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-color: rgba(0,0,255,0);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"></a><a class="nav-page-title" href="/"><span class="site-name">如何设计一个较通用的UI框架</span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fas fa-light fa-envelope"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">如何设计一个较通用的UI框架</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-04-06T03:53:06.770Z" title="发表于 2025-04-06 11:53:06">2025-04-06</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-04-06T14:10:44.953Z" title="更新于 2025-04-06 22:10:44">2025-04-06</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/UGUI/">UGUI</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">4.1k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>11分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>本文会浅谈UI框架的设计和关注要点，如果对UGUI基础理论和性能优化感兴趣，可以参考之前的文章，如果想要了解更多可以查看本文下面的推荐文章。</p>
+<h2 id="为什么需要UI框架，其设计思想是什么"><a href="#为什么需要UI框架，其设计思想是什么" class="headerlink" title="为什么需要UI框架，其设计思想是什么"></a>为什么需要UI框架，其设计思想是什么</h2><p>试想一下如果没有一个统一的UI框架，所有的业务程序员会如何进行UI的开发——一个人一个策略，组件各种方式搜集，写法千差万别，轮子任意造，维护成本巨大，整体可读性极差，也就是所谓的“混乱”。</p>
+<p>我曾经问过大佬们为什么需要设计框架，收到了这样一个答案——解耦。让每个模块的职责单一化，让各个模块整合起来能实现我们想要的功能的便是框架。而UI框架里面的一个解耦要点就是数据和逻辑的分离和组合。</p>
+<p>总结一下便是说通过约束性设计和标准化的管理来防止随着业务需求增加的同时，代码的混乱度增加，以及随之而来的性能问题，巨大的维护成本。</p>
+<p>我把这个问题抛给DeepSeek，其回答有一句我认为是比较精辟的：<br>框架的本质是<strong>通过约束创造自由</strong>——看似限制了编码方式，实则通过规范化设计让开发者能更专注于业务开发和创新。如同交通规则的存在不是为了限制驾驶，而是为了让所有车辆能高效安全地到达目的地。</p>
+<h2 id="如何设计一个较通用的UI框架"><a href="#如何设计一个较通用的UI框架" class="headerlink" title="如何设计一个较通用的UI框架"></a>如何设计一个较通用的UI框架</h2><p>这里要说一下，在本人目前接触到的各个UI框架中，有的确实能说设计的不错，功能很强，但即使如此，也不能绝对的说某一个就是最好的。因为根据不同的项目需求，不同的业务场景，不同的团队情况，都有不同的UI框架的需求。有的框架可能在某个项目中有着巨大的作用，但可能换一个地方，其各种功能根本用不上，其设计便存在了巨大的冗余之处。<br>但即使如此，我们还是可以总结经验，提炼出一个较为通用的UI框架设计思路。接下来会就各个功能点来进行阐述。<br><img src="/img/UIFramework.png" class="post-image" /></p>
+<h2 id="组件绑定"><a href="#组件绑定" class="headerlink" title="组件绑定"></a>组件绑定</h2><p>页面逻辑执行脚本获取对应的依赖UI组件的方式有很多种，最简单的直接拖动当然是可以的，不过成熟的框架往往都会提供更加便捷的组件绑定方式，而如果是使用Lua进行开发的话则更加重要。<br>鄙人有幸见识过通过改写LuaBehaviour的内部逻辑，支持拖动脚本组件到对应View层的变量上的做法，这种做法不能说有点问题吧，只能说极其糟糕。它利用的是Unity的序列化在编辑器的可视化交互，这样做貌似直观，清晰，但随之而来的问题也比较严重。</p>
+<ul>
+<li><strong>命名不规范。</strong>对命名规范没有要求，各种五花八门的命名和随意拖拽，且无法快速查找和定位。</li>
+<li><strong>使用不方便。</strong>需要一个个地去拖拽，无法在规范化命名后去支持一件获取。</li>
+<li><strong>底层实现过于复杂，维护成本增高</strong>需求变动时带来大量UI改动的时候很难维护。</li>
+<li><strong>和Lua侧生命周期的冲突。</strong>由于这个LuaBehaviourC#脚本的生命周期将lua侧对预制体的生命周期分割了，因为预制体资源加载完成的回调那一帧是无法处理逻辑的，因为lua侧的对应的组件绑定功能会占据第一帧，然后执行完组件绑定功能后，再去执行生命周期。</li>
+</ul>
+<p>如果要考虑写一个组件绑定工具除了考虑上面的点之外，如果你是Lua的开发环境，还要考虑item的获取情况，要给与对应动态绑定功能的支持。</p>
+<h2 id="层级划分问题"><a href="#层级划分问题" class="headerlink" title="层级划分问题"></a>层级划分问题</h2><p>详细层级的划分可以参考上面的图。<br>做好层级划分是为了处理多种功能的UI页面，这些页面有着不同的特性，比如有的页面需要全屏显示，有的页面需要弹出，有的页面需要遮挡住其他页面等等。我们通过给它们分类放在不同的层级，让它们按照我们指定的规则去进行显示，保证显示效果的同时，也能根据这个去规则化特效的层级问题，而如果是特效的话，我们一般会还会要求特效Shader支持stencil和clipRect。</p>
+<p>对于2D页面和3D场景混合的页面，我们可以把3D场景渲染到一个RawImage上面，然后进行显示，这也是UIRoot里面SceneImage的作用。这样不用考虑3D模型和UI元素深度的冲突以及层级的问题，也能更好地调整效果。</p>
+<p>本人曾经也思考过一个问题：First和Second层逻辑同时存在是否会显得冗余？在我看来并不会，通过规则化First层和Second层的具体逻辑可以使得层级分明逻辑清晰，比如我们可以规定全屏且参与栈打开的页面都必须是First层级的，其他的Pop页面都是Second的，我相信也是没有什么问题的；但一定得这么做吗？这就不一定了，毕竟可以还是可以通过其他参数或者情况的判定而实现。可能每个项目都会有不同的情况，诸如此类根据具体的情况和确切的需求来定即可。</p>
+<h2 id="通用页面底板的设计"><a href="#通用页面底板的设计" class="headerlink" title="通用页面底板的设计"></a>通用页面底板的设计</h2><p>在游戏设计的初始阶段，当美术统一化规范设计后，就可以设计出对应的UI通用底板了，从而减少UI的冗余拼接并确定同一的显示效果。在UI框架上体现出的便是相同类型的页面具备相同的底板，底板自带部分逻辑且支持通用。<br>这样做可以减少代码重复度，提高开发效率。</p>
+<h2 id="通用tips弹窗"><a href="#通用tips弹窗" class="headerlink" title="通用tips弹窗"></a>通用tips弹窗</h2><p>通用的各种类型的弹窗也是游戏里面往往会用到的，设计好和实现好这一部分能剩下不少事情。一般我们的弹窗可能都会是一时间只能打开一个，但是游戏游戏逻辑是需要多弹窗同时存在的且下一弹窗可能通过上一弹窗进行打开，然后按照顺序关闭，这些其实也都并不复杂，根据需求来做即可。</p>
+<p>至于这些弹窗的管理，不同于普通的页面。举个例子，我们可以通过一个单独的列表来管理当前的弹窗——MultiWindows。这些弹窗不会参与其他页面的任何打开逻辑，反之亦然。它们有着自己单独的逻辑。</p>
+<h2 id="打开UI卡顿和页面数据同步问题"><a href="#打开UI卡顿和页面数据同步问题" class="headerlink" title="打开UI卡顿和页面数据同步问题"></a>打开UI卡顿和页面数据同步问题</h2><p>首先要确定卡顿的形式，资源加载消耗或者页面Rebuild消耗，这些可以参考之前的文章。这里说一下另一种数据异步的问题。</p>
+<p>当一个页面需要服务器实时去同步数据的时候，而页面则是需要及时打开的，这就会面对一个问题——页面打开了，但是服务器的回调还没发过来，也就是说没拿到数据。</p>
+<p>针对这种问题，可能会考虑到，比如在游戏一开始的时候就把我们想要的数据从服务器那边申请下来，并进行缓存，这样我们后面要用的时候不就可以直接用了吗，就可以完美解决这样的问题了。但是如果这样的话，数据一多或者需要的地方多了，在登录的时候就会请求众多且可能冗余的数据。</p>
+<p>还有一种方式就是先做默认的表现形式，就是页面打开的时候先检查数据，如果没有数据的话，就赋予默认的数据，让页面按照默认的形式显示获取加载中之类的表现形式，然后等数据到了的时候再去刷新一遍页面即可。</p>
+<h2 id="页面存储结构管理"><a href="#页面存储结构管理" class="headerlink" title="页面存储结构管理"></a>页面存储结构管理</h2><p>我们在存储各个页面的数据的时候，往往需要多个容器存不同类型的数据。<br>比如我们可以有四个容器进行管理，</p>
+<ul>
+<li>PopWindows，用来状态我们所有打开着的UIStcheme。</li>
+<li>PopStack，用栈的形式来管理普通页面打开的顺序，并且以此为基准进行同一打层级中每个UI的层级排序。</li>
+<li>FullScreenWindows，用来存储全屏显示的UI。这只用于全屏的页面，同样是栈的形式来实现，实现全屏页面的栈打开和关闭。</li>
+<li>MultiWindows，用来存储弹窗页面的列表。区别于上面的任何一个逻辑，且支持多个同时存在。</li>
+</ul>
+<p>通过这样各司其职的管理，可以有效地避免数据混乱，提高代码的可维护性。</p>
+<h2 id="逻辑和数据解耦"><a href="#逻辑和数据解耦" class="headerlink" title="逻辑和数据解耦"></a>逻辑和数据解耦</h2><p>要实现这一点也与框架的选择有关系，比如MVC，MVVM这些其实都是为了解耦数据和逻辑。<br>那MVC举例，可以从三个部分理解，Model，View，Controller。</p>
+<ul>
+<li>Model：只负责存储数据。也就是单存的存储，它于任何数据处理逻辑以及显示效果没有任何一点关系。</li>
+<li>View：只负责显示效果。通过将逻辑处理完的数据显示出来。</li>
+<li>Controller：负责处理逻辑。它与任何数据的存储以及页面显示没有任何关系。</li>
+</ul>
+<p>这其实就很可以提现上面所说的框架的思想————解耦。让每个模块的职责单一化，让各个模块整合起来能实现我们想要的功能。</p>
+<p>还有一种实现形式：<br>有的项目会把主要的数据存储于其他地方（比如管理器），任何UI的数据都看做“临时的”，这样M层则不一定需要脚本化。如果采用这种形式，V层也没有脚本化的绝对的必要性，组件的绑定和获取以及页面的控制都可以通过一些工具进行绑定，C层可以直接使用，也就不用通过V层获取组件。它其实采取的也是MVC的思想，但使用这种形式的人可能是觉得原封不动的MVC有很多冗余的地方，写起来不方便或者看起来不是很简洁。</p>
+<p>依我之见的话，这种形式它其实考虑就是两个方面：</p>
+<ul>
+<li>不要V层脚本。V层里面如果不涉及到组件绑定的话，V层的控制是最少的，C层能直接拿到组件，还不如直接写在C层，减少跳转跳转，便捷开发，这种层度的耦合不会影响开发，反而更加直观；</li>
+<li>选择性不要M层脚本。坚持如果UI需要数据可以从它处取，关于UI自身的数据往往具有很强的“临时性”，因此没有必要专门整个M层，通过C层区域化定义，关闭时置空，这种层度的耦合也不会影响开发，反而更加直观。</li>
+</ul>
+<p>如果按照这个角度来考虑的话，个人认为根据数据情况来选择其实是可以的，传统的MVC在一些项目中很多情况的书写方式确实存在冗余时候，选择性的使用这种方式可能更加便捷好直观，重要的是核心的数据和逻辑还是分离开的，只要不出现把其他的数据存在对应UI里面（无论任何一个层）的情况，适当的变通也是可以的。</p>
+<h2 id="动画"><a href="#动画" class="headerlink" title="动画"></a>动画</h2><p>动画的话，目前接触到的使用最多的还是DOTween，它可以让我们快速实现一些动画效果，使用起来方便，简单。<br>置于是使用其挂载式的组件脚本，还是通过代码去动态控制，这边一般会选择后者。因为前者十分起来对应的预制体节点，伴随着UI页面的多次迭代，这种维护和修改会比后者麻烦一些。而如果使用后者做动画的话，则是需要考虑tween的管理，不要“到处乱拉”。</p>
+<h2 id="适配"><a href="#适配" class="headerlink" title="适配"></a>适配</h2><p>适配要注意的问题的话，比较常见的有：</p>
+<ul>
+<li>适配刘海屏。这方面Unity官方貌似也是有插件的，可以快速调整。而如果是手动设置的话，就需要考虑多个机型的安全区进行多次测试进行调试。</li>
+<li>适配不同分辨率屏幕。这个的话，根据不同项目可能有不同的表现形式，有的美术可能希望要原封不动的保留其本身的背景比例，空余的部分去加黑边。有的则可能会从出图上去出更大的图，然后去解决可能的适配填充拉伸问题。</li>
+</ul>
+<p>当然，CanvasScaler的相关属性和Canvas的模式这些都需要考虑，不过只要整体方案确定了，这方面还是比较好调节的。<br>这方面感兴趣的可以参考Unity的官方文档和下面的文章链接。</p>
+<h2 id="页面之间的通信和嵌套"><a href="#页面之间的通信和嵌套" class="headerlink" title="页面之间的通信和嵌套"></a>页面之间的通信和嵌套</h2><p>页面之间的通信主要有两种形式————消息事件和子页面传递。<br>前者不多赘述，这里说一下后者。<br>一个页面可能包含多个子页面，甚至它本身可能就是由多个子页面组成的，这种子页面我们称之为SubView或者说Widget。</p>
+<p>为什么会有子页面？</p>
+<ul>
+<li>分担页面逻辑。当一个页面过大，包含多重页面和多种逻辑的时候，如果就这样只放在一个页面里面的话，当页面打开的时候不仅UI预制体加载时间会过长，而且页面脚本逻辑也会因为冗长的逻辑代码导致可读性差，维护成本也随之上升。如果使用子页面进行分担的话，每个子页面模块就可以专注对应的功能，每个部分的功能也都清晰可见。</li>
+<li>选择页面逻辑。当一个页面可以存在多个子页面，且这些子页面随着不同的情况，有着不同的表现形式。比如一个主菜单页面可能由多个子页面组成，当跳转不同的场景的时候可能需要显示不同的内容，也就是说不同的情况，可能显示多种搭配。这种情况的话，我们就可以选择性生成并且很好地适应需求变化。而不是杂糅在一个页面里面去处理。</li>
+</ul>
+<p>嵌套之间的数据通过管理进行传递，往往主页面是包含子页面的脚本数据的，可以通过这种形式传递数据给子页面；而子页面通过缓存主页面脚本，也可以把想要的内容回传给主页面。即使这样的嵌套有多层，也可以通过这种形式传递实现功能。<br>而实际开发中，我们一般并不希望一个页面的垂直上面嵌套超过三层。因为过多的嵌套会也回导致代码的可读性差，维护成本也会随之上升。</p>
+<h2 id="其他可供参考文章"><a href="#其他可供参考文章" class="headerlink" title="其他可供参考文章"></a>其他可供参考文章</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://www.lfzxb.top/personal-ui-framework-consider/">烟雨的个人思考</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/667966938">Unity的UI系统框架</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.drflower.top/posts/16213a73/">GF的页面解析</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.mscworld.top/2024/12/22/ugui/">UGUI 基础理论和性能优化</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.rtcdeveloper.cn/cn/community/blog/21135">Unity 开源项目推荐 UI 篇</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.unity3d.com/cn/2021.1/Manual/HOWTO-UIMultiResolution.html">Unity官方手册——设计用于多种分辨率的UI</a></li>
+<li><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1637553">Unity3D-关于项目的屏幕适配</a></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="http://mscworld.top">世界</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="http://mscworld.top/2025/04/06/uiframework/">http://mscworld.top/2025/04/06/uiframework/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="http://mscworld.top" target="_blank">世界观</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/UGUI/">UGUI</a><a class="post-meta__tags" href="/tags/UI/">UI</a><a class="post-meta__tags" href="/tags/%E4%BC%98%E5%8C%96/">优化</a><a class="post-meta__tags" href="/tags/UI%E6%A1%86%E6%9E%B6/">UI框架</a></div><div class="post-share"><div class="social-share" data-image="/img/miki3.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/chatpay.png" target="_blank"><img class="post-qr-code-img" src="/img/chatpay.png" alt="微信"/></a><div class="post-qr-code-desc">微信</div></li><li class="reward-item"><a href="/img/pay.png" target="_blank"><img class="post-qr-code-img" src="/img/pay.png" alt="支付宝"/></a><div class="post-qr-code-desc">支付宝</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="prev-post pull-full" href="/2025/01/22/xlua/" title="xLua知识点总结"><img class="cover" src="/img/mono.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">xLua知识点总结</div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a href="/2024/12/22/ugui/" title="UGUI基础理论和性能优化"><img class="cover" src="/img/eri3.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-22</div><div class="title">UGUI基础理论和性能优化</div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info is-center"><div class="avatar-img"><img src="/img/roxy4.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">世界</div><div class="author-info-description">才疏学浅，泛泛而谈之辈</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">12</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">17</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/MscWorld"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/MscWorld" target="_blank" title="Github"><i class="fab fa-github" style="color: #81818C;"></i></a><a class="social-icon" href="Google:z2452009691@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #81818C;"></i></a><a class="social-icon" href="/3254805509" target="_blank" title="QQ"><i class="fa-brands fa-qq" style="color: #81818C;"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81UI%E6%A1%86%E6%9E%B6%EF%BC%8C%E5%85%B6%E8%AE%BE%E8%AE%A1%E6%80%9D%E6%83%B3%E6%98%AF%E4%BB%80%E4%B9%88"><span class="toc-number">2.</span> <span class="toc-text">为什么需要UI框架，其设计思想是什么</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E8%AE%BE%E8%AE%A1%E4%B8%80%E4%B8%AA%E8%BE%83%E9%80%9A%E7%94%A8%E7%9A%84UI%E6%A1%86%E6%9E%B6"><span class="toc-number">3.</span> <span class="toc-text">如何设计一个较通用的UI框架</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%84%E4%BB%B6%E7%BB%91%E5%AE%9A"><span class="toc-number">4.</span> <span class="toc-text">组件绑定</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B1%82%E7%BA%A7%E5%88%92%E5%88%86%E9%97%AE%E9%A2%98"><span class="toc-number">5.</span> <span class="toc-text">层级划分问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%9A%E7%94%A8%E9%A1%B5%E9%9D%A2%E5%BA%95%E6%9D%BF%E7%9A%84%E8%AE%BE%E8%AE%A1"><span class="toc-number">6.</span> <span class="toc-text">通用页面底板的设计</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%9A%E7%94%A8tips%E5%BC%B9%E7%AA%97"><span class="toc-number">7.</span> <span class="toc-text">通用tips弹窗</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%89%93%E5%BC%80UI%E5%8D%A1%E9%A1%BF%E5%92%8C%E9%A1%B5%E9%9D%A2%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5%E9%97%AE%E9%A2%98"><span class="toc-number">8.</span> <span class="toc-text">打开UI卡顿和页面数据同步问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%A1%B5%E9%9D%A2%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E7%AE%A1%E7%90%86"><span class="toc-number">9.</span> <span class="toc-text">页面存储结构管理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%BB%E8%BE%91%E5%92%8C%E6%95%B0%E6%8D%AE%E8%A7%A3%E8%80%A6"><span class="toc-number">10.</span> <span class="toc-text">逻辑和数据解耦</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8A%A8%E7%94%BB"><span class="toc-number">11.</span> <span class="toc-text">动画</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%82%E9%85%8D"><span class="toc-number">12.</span> <span class="toc-text">适配</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%A1%B5%E9%9D%A2%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E4%BF%A1%E5%92%8C%E5%B5%8C%E5%A5%97"><span class="toc-number">13.</span> <span class="toc-text">页面之间的通信和嵌套</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E5%8F%AF%E4%BE%9B%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="toc-number">14.</span> <span class="toc-text">其他可供参考文章</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/04/06/uiframework/" title="如何设计一个较通用的UI框架"><img src="/img/miki3.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="如何设计一个较通用的UI框架"/></a><div class="content"><a class="title" href="/2025/04/06/uiframework/" title="如何设计一个较通用的UI框架">如何设计一个较通用的UI框架</a><time datetime="2025-04-06T03:53:06.770Z" title="发表于 2025-04-06 11:53:06">2025-04-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/01/22/xlua/" title="xLua知识点总结"><img src="/img/mono.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="xLua知识点总结"/></a><div class="content"><a class="title" href="/2025/01/22/xlua/" title="xLua知识点总结">xLua知识点总结</a><time datetime="2025-01-22T13:37:02.885Z" title="发表于 2025-01-22 21:37:02">2025-01-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/01/12/lua/" title="Lua重要知识点总结"><img src="/img/earth.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Lua重要知识点总结"/></a><div class="content"><a class="title" href="/2025/01/12/lua/" title="Lua重要知识点总结">Lua重要知识点总结</a><time datetime="2025-01-12T05:36:40.717Z" title="发表于 2025-01-12 13:36:40">2025-01-12</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/01/01/summary_annual/" title="2024年度总结"><img src="/img/to2025.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="2024年度总结"/></a><div class="content"><a class="title" href="/2025/01/01/summary_annual/" title="2024年度总结">2024年度总结</a><time datetime="2025-01-01T07:13:27.044Z" title="发表于 2025-01-01 15:13:27">2025-01-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/12/22/ugui/" title="UGUI基础理论和性能优化"><img src="/img/eri3.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI基础理论和性能优化"/></a><div class="content"><a class="title" href="/2024/12/22/ugui/" title="UGUI基础理论和性能优化">UGUI基础理论和性能优化</a><time datetime="2024-12-22T10:57:18.097Z" title="发表于 2024-12-22 18:57:18">2024-12-22</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2024 - 2025 By 世界</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">Hi, welcome to my <a target="_blank" rel="noopener" href="https://butterfly.js.org/">blog</a>!</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="translateLink" type="button" title="简繁转换">簡</button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/js/tw_cn.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module"></script><script>(() => {
+  const panguFn = () => {
+    if (typeof pangu === 'object') pangu.autoSpacingPage()
+    else {
+      btf.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js')
+        .then(() => {
+          pangu.autoSpacingPage()
+        })
+    }
+  }
+
+  const panguInit = () => {
+    if (true){
+      GLOBAL_CONFIG_SITE.isPost && panguFn()
+    } else {
+      panguFn()
+    }
+  }
+
+  btf.addGlobalFn('pjaxComplete', panguInit, 'pangu')
+  document.addEventListener('DOMContentLoaded', panguInit)
+})()</script><div class="js-pjax"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@2.1.8/css/lightgallery.css"/><script src="https://cdn.jsdelivr.net/npm/lightgallery@2.1.8/lightgallery.min.js"></script><script>(() => {
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://mscworld-hexo.hf.space',
+      region: 'ap-hangzhou',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = () => {
+    twikoo.init(Object.assign({
+      el: '#twikoo-wrap',
+      envId: 'https://mscworld-hexo.hf.space',
+      region: 'ap-hangzhou',
+      onCommentLoaded: function () {
+        var commentContents = document.getElementsByClassName('tk-content');
+        for (var i = 0; i < commentContents.length; i++) {
+          var commentItem = commentContents[i];
+          var imgEls = commentItem.getElementsByTagName('img');
+          if (imgEls.length > 0) {
+            for (var j = 0; j < imgEls.length; j++) {
+              var imgEl = imgEls[j];
+              var aEl = document.createElement('a');
+              aEl.setAttribute('class', 'tk-lg-link');
+              aEl.setAttribute('href', imgEl.getAttribute('src'));
+              aEl.setAttribute('data-src', imgEl.getAttribute('src'));
+              aEl.appendChild(imgEl.cloneNode(false));
+              imgEl.parentNode.insertBefore(aEl, imgEl.nextSibling);
+              imgEl.remove();
+            }
+            lightGallery(commentItem, {
+              selector: '.tk-lg-link',
+              share: false
+            });
+          }
+        }
+      }
+    }, null))
+  }
+
+
+
+  const loadTwikoo = () => {
+    if (typeof twikoo === 'object') setTimeout(init,0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(init)
+  }
+
+  if ('Twikoo' === 'Twikoo' || !true) {
+    if (true) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><canvas id="universe"></canvas><script defer src="/js/universe.js"></script><script defer src="/js/light.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = false;
+POWERMODE.mobile = true;
+document.body.addEventListener('input', POWERMODE);
+</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div><!-- hexo injector body_end start --><script data-pjax>
+  function butterfly_footer_beautify_injector_config(){
+    var parent_div_git = document.getElementById('footer-wrap');
+    var item_html = '<div id="workboard"></div><p id="ghbdages"><a class="github-badge" target="_blank" href="https://hexo.io/" style="margin-inline:5px" data-title="博客框架为Hexo_v6.2.0" title=""><img src="https://img.shields.io/badge/Frame-Hexo-blue?style=flat&amp;logo=hexo" alt=""/></a><a class="github-badge" target="_blank" href="https://butterfly.js.org/" style="margin-inline:5px" data-title="主题版本Butterfly_v4.3.1" title=""><img src="https://img.shields.io/badge/Theme-Butterfly-6513df?style=flat&amp;logo=bitdefender" alt=""/></a><a class="github-badge" target="_blank" href="https://huggingface.co/" style="margin-inline:5px" data-title="本站采用多线部署，主线路托管于Hugging Face" title=""><img src="https://img.shields.io/badge/Hosted-Hugging Face-brightgreen?style=flat&amp;logo=Hugging Face" alt=""/></a><a class="github-badge" target="_blank" href="https://dashboard.4everland.org/" style="margin-inline:5px" data-title="本站采用多线部署，备用线路托管于4EVERLAND" title=""><img src="https://img.shields.io/badge/Hosted-4EVERLAND-22DDDD?style=flat&amp;logo=IPFS" alt=""/></a><a class="github-badge" target="_blank" href="https://github.com/" style="margin-inline:5px" data-title="本站项目由Github托管" title=""><img src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&amp;logo=GitHub" alt=""/></a><a class="github-badge" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" style="margin-inline:5px" data-title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可" title=""><img src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&amp;logo=Claris" alt=""/></a></p>';
+    console.log('已挂载butterfly_footer_beautify')
+    parent_div_git.insertAdjacentHTML("beforeend",item_html)
+    }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = 'all';
+  var flag = 0;
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_footer_beautify_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_footer_beautify_injector_config();
+  }
+  </script><script async src="/js/runtime.js"></script><!-- hexo injector body_end end --></body></html>
