@@ -225,20 +225,6 @@
   </url>
   
   <url>
-    <loc>http://mscworld.top/tags/%E8%B5%84%E6%BA%90/</loc>
-    <lastmod>2025-04-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>http://mscworld.top/tags/%E7%83%AD%E6%9B%B4%E6%96%B0/</loc>
-    <lastmod>2025-04-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
     <loc>http://mscworld.top/tags/%E9%9A%8F%E7%AC%94/</loc>
     <lastmod>2025-04-16</lastmod>
     <changefreq>weekly</changefreq>
@@ -274,13 +260,6 @@
   </url>
   
   <url>
-    <loc>http://mscworld.top/tags/%E5%8D%9A%E5%AE%A2/</loc>
-    <lastmod>2025-04-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
     <loc>http://mscworld.top/tags/xLua/</loc>
     <lastmod>2025-04-16</lastmod>
     <changefreq>weekly</changefreq>
@@ -289,6 +268,27 @@
   
   <url>
     <loc>http://mscworld.top/tags/Lua/</loc>
+    <lastmod>2025-04-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>http://mscworld.top/tags/%E8%B5%84%E6%BA%90/</loc>
+    <lastmod>2025-04-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>http://mscworld.top/tags/%E7%83%AD%E6%9B%B4%E6%96%B0/</loc>
+    <lastmod>2025-04-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>http://mscworld.top/tags/%E5%8D%9A%E5%AE%A2/</loc>
     <lastmod>2025-04-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
