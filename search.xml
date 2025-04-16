@@ -13,7 +13,7 @@
       
       <categories>
           
-          <category> 实体,设计模式 </category>
+          <category> 实体 </category>
           
       </categories>
       
@@ -273,9 +273,9 @@
       
         <tags>
             
-            <tag> GameFramework </tag>
-            
             <tag> 实体 </tag>
+            
+            <tag> GameFramework </tag>
             
         </tags>
       
@@ -300,11 +300,11 @@
       
         <tags>
             
-            <tag> GameFramework </tag>
-            
             <tag> 事件系统 </tag>
             
             <tag> 观察者模式 </tag>
+            
+            <tag> GameFramework </tag>
             
         </tags>
       
