@@ -4,6 +4,33 @@
   
     
     <entry>
+      <title>组件收集工具—ComponentAutoCollector</title>
+      <link href="/2025/10/26/ComponentAutoCollector/"/>
+      <url>/2025/10/26/ComponentAutoCollector/</url>
+      
+        <content type="html"><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>想起之前写过的一个组件自动化收集工具，这里分享出来。</p><p>链接: <a href="https://pan.baidu.com/s/1wHox7gMie_XwkanFZeJ7Yg?pwd=bnqd">https://pan.baidu.com/s/1wHox7gMie_XwkanFZeJ7Yg?pwd=bnqd</a> 提取码: bnqd </p><h2 id="一-概念和作用"><a href="#一-概念和作用" class="headerlink" title="一. 概念和作用"></a>一. 概念和作用</h2><p>这是一个组件自动化绑定工具。在UI页面的开发中，自动收集 UI 组件并生成对应的序列化字段。其核心逻辑在于分析场景中游戏对象的命名规范，自动为 MonoBehaviour 脚本添加、更新和删除组件引用字段。</p><h2 id="二-书写目的"><a href="#二-书写目的" class="headerlink" title="二. 书写目的"></a>二. 书写目的</h2><ol><li>提高开发效率，减少反复定义和拖拽耗时。</li><li>规范化命名格式，支持根据名称快速定位，以增加可读性和复查便捷性。</li></ol><h2 id="三-使用方式"><a href="#三-使用方式" class="headerlink" title="三. 使用方式"></a><strong>三. 使用方式</strong></h2><ol><li><p><strong>标记 UI 节点</strong></p><p> 在 Hierarchy 视图中为需要收集的节点按特定前缀命名，比如想要收集button组件，则是“@_btn_xxxx” 的形式。其格式拆解为：</p><ul><li>@ 表示此节点需要参加组件的收集。其中@和$的区别在于，$下面的子节点不会参与当前脚本的组件收集，而其下的节点则是只参与$修饰节点其本身的收集。</li><li>btn 表示想要收集组件的简称</li><li>xxxx 则是自定义的命名</li></ul> <img src="/img/Component_1.png" class="post-image" /> </li><li><p><strong>触发自动收集流程</strong></p><ul><li>在 Inspector 面板中右键点击目标 MonoBehaviour 组件的右上侧三个点</li><li>选择 “Auto Collect UI Components” 选项，即可开始收集。</li></ul><p> 流程注意：这里收集的流程会分为两步，第一步会根据命名自动生成对应的字段到脚本上，然后进行编译；第二步则是把组件赋值到对应的字段上去。</p><p> 因此要执行两次，规范好命名后，执行一次，等待编译(如果有增删才会执行编译)，编译完成后，执行第二次。</p> <img src="/img/Component_2.png" class="post-image" /></li><li><p><strong>查看结果与核对</strong></p><ul><li>控制台会根据操作展示当前改动的结果</li><li>最终收集到的组件会在对应脚本上呈现出对应的字段定义，并会被region区域划分，这一部分并不需要，也请不要进行手动修改。</li></ul> <img src="/img/Component_3.png" class="post-image" /> <img src="/img/Component_4.png" class="post-image" /></li><li><p><strong>关于自定义组件的收集和非UI页面的拓展</strong></p><p> 按理说，想要让更多组件支持被收集，只需要不断拓展其支持采集的组件检索即可。此外，此组件并非只限于UI页面的使用，非UI页面组件的收集也是支持的，同样拓展收集的组件类型即可。</p><p> 但这里目前仅提供基础UGUI组件支持即可，如果有通用的，直接添加也没有任何问题。</p> <img src="/img/Component_5.png" class="post-image" /></li></ol><h2 id="四-拓展考量"><a href="#四-拓展考量" class="headerlink" title="四. 拓展考量"></a><strong>四. 拓展考量</strong></h2><p>目前UI页面针对射线并没有对应的强制限制规范，游戏里UI包含大量冗余的射线使用且使用的射线并未被掏空Mesh，这会照成冗余的性能消耗。<br>后续可拓展此工具，针对这一方面做出限制和拓展。</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> Tool </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 组件收集 </tag>
+            
+            <tag> 工具 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>浅谈红点树与分帧</title>
       <link href="/2025/05/18/redPointTree/"/>
       <url>/2025/05/18/redPointTree/</url>
@@ -377,11 +404,11 @@
       
         <tags>
             
+            <tag> GameFramework </tag>
+            
             <tag> 事件系统 </tag>
             
             <tag> 观察者模式 </tag>
-            
-            <tag> GameFramework </tag>
             
         </tags>
       
